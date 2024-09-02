@@ -1,20 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class MonsterController5 : MonoBehaviour
 {
     [SerializeField] Transform targetPosition;
-    private Vector3 direction;
-    Coroutine ShootingRay;
+    [SerializeField] float detectionRange;
+    [SerializeField] float moveSpeed;
+    
+    Coroutine ShootingRayRoutine;
 
 
-    private void OnEnable()
+   
+    private void FixedUpdate()
     {
-        direction = (targetPosition.position-transform.position).normalized;
+        ShootRay();
     }
-
+    
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -22,25 +26,71 @@ public class MonsterController5 : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+    private void ShootRay()
+    {
+        Vector3 startedPosition = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+        // 레이가 플레이어와 몬스터의 키 차이때문에 바닥에 꼬꾸라짐
+        // y 포지션만 그대로하고 레이를 쏠 포지션을 제대로 설정
+        Vector3 direction = (new Vector3(targetPosition.transform.position.x,transform.position.y,targetPosition.transform.position.z)-startedPosition).normalized;
+        Debug.DrawRay(startedPosition, direction*detectionRange, Color.red,0.1f);
 
-
+        if (Physics.Raycast(startedPosition, direction, out RaycastHit hit, detectionRange))
+        {
+            if (hit.collider.tag == "Player")
+            {
+                GoMove();
+            }
+            else
+            {
+                StopMove();
+            }
+        }
+        else
+        {
+            StopMove();
+        }
     }
 
-    //IEnumerator ShootRayRoutine()
+    private void GoMove()
+    {
+        Debug.Log("플레이어 감지!");
+        Vector3 curPlayerPosition = new Vector3(targetPosition.position.x, transform.position.y, targetPosition.position.z); //y축은 감지범위떄문에 몬스터 기준으로                
+        transform.position = Vector3.MoveTowards(transform.position, curPlayerPosition, moveSpeed * Time.deltaTime);
+    }
+
+    private void StopMove()
+    {
+        Debug.Log("플레이어 찾는중!");
+    }
+
+    // 코루틴에서 해주는것보다 update나 fixedUpdate에서 해주니 움직임이 자연스러워졌다.
+
+    private void OnEnable()
+    {
+        //if(ShootingRayRoutine == null ) 
+        //    ShootingRayRoutine = StartCoroutine(ShootRayRoutine());
+
+        //레이 쏘기 루틴 시작
+    }
+
+    private void OnDisable()
+    {
+        //if(ShootingRayRoutine != null)
+        //    StopCoroutine(ShootingRayRoutine);
+        // 레이 쏘기 루틴 끝
+    }
+    IEnumerator ShootRayRoutine()
+    {
+        WaitForSeconds delay = new WaitForSeconds(0.1f);
+        while (true)
+        {
+            ShootRay();
+            yield return delay;
+        }
+    }
 
 
-    //private void ShootRay()
-    //{
-    //    Debug.DrawRay(transform.position, transform.forward, Color.red);
 
-    //    if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit))
-    //    {
-    //        if(hit.collider.tag == "Player")
-    //        {
-    //            //hit.collider
-    //        }
-
-    //    }
-    //}
 
 }
